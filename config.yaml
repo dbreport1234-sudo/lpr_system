@@ -1,0 +1,50 @@
+# ข้อมูล IP / ชื่อผู้ใช้ / รหัสผ่านกล้อง อยู่ในไฟล์ camera.yaml
+camera_file: camera.yaml
+
+camera:
+  reconnect_delay: 5
+
+# ===== ตรวจจับป้ายทะเบียน (YOLO) =====
+detector:
+  weights: models/plate.pt     # ดาวน์โหลดอัตโนมัติด้วย download_model.py
+  conf: 0.40
+  imgsz: 960
+  device: cpu                  # "0" = GPU ตัวแรก
+  tracker: bytetrack.yaml
+  classes: null                # เช่น [0] ถ้าโมเดลมีหลาย class (0 = ป้ายทะเบียน)
+
+# ROI แบบ normalized [x1,y1,x2,y2] เช่น [0.1,0.3,0.9,0.95] หรือ null = ทั้งภาพ
+roi: null
+
+# ===== OCR =====
+ocr:
+  gpu: false
+  min_conf: 0.30
+
+# ===== Tracking / Voting =====
+tracking:
+  min_plate_width_px: 90
+  ocr_every_n_frames: 2
+  max_ocr_per_track: 10
+  confirm_votes: 3
+  lost_min_votes: 2
+  max_age_sec: 2.0
+  dedupe_sec: 30
+
+storage:
+  db_path: data/lpr.db
+  image_dir: data/images
+
+# ===== ควบคุมไม้กั้น/ประตู ผ่าน Digital Output ของกล้อง (ใช้ IP/user/password จาก camera.yaml) =====
+gate:
+  enabled: false
+  scheme: http
+  do_channel: 0
+  open_ms: 3000
+  cooldown_sec: 10
+
+whitelist_file: whitelist.txt
+
+api:
+  host: 0.0.0.0
+  port: 8000

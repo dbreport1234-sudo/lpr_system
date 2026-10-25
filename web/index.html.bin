@@ -1,0 +1,90 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ระบบ LPR</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--tx:#1d2330;--mu:#6b7280;--bd:#dfe3ea;--ac:#2563eb;--ok:#16a34a;--bad:#dc2626}
+@media(prefers-color-scheme:dark){:root{--bg:#0f141b;--card:#171e28;--tx:#e6e9ef;--mu:#8b95a5;--bd:#2a3340;--ac:#5b8def}}
+*{box-sizing:border-box}body{margin:0;font:14px system-ui,"Leelawadee UI",Tahoma,sans-serif;background:var(--bg);color:var(--tx)}
+nav{display:flex;gap:4px;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5}
+nav b{margin-right:16px;align-self:center}nav button{border:0;background:none;color:var(--mu);padding:8px 14px;border-radius:6px;cursor:pointer;font:inherit}
+nav button.on{background:var(--ac);color:#fff}main{padding:16px;max-width:1500px;margin:auto}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:12px}
+.cam img{width:100%;background:#000;border-radius:6px;display:block;min-height:180px}.cam h4{margin:0 0 8px;display:flex;justify-content:space-between}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--mu)}.online{background:var(--ok)}.offline{background:var(--bad)}
+table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:middle}th{color:var(--mu);font-weight:500}
+input,select,button.b{font:inherit;padding:6px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--tx)}
+button.b{cursor:pointer}button.p{background:var(--ac);color:#fff;border-color:var(--ac)}button.d{color:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center}.kpi{display:flex;gap:12px;flex-wrap:wrap}
+.kpi div{flex:1;min-width:140px}.kpi b{font-size:26px;display:block}.kpi span{color:var(--mu)}
+.bar{display:flex;align-items:flex-end;gap:3px;height:120px}.bar i{flex:1;background:var(--ac);min-width:6px;border-radius:3px 3px 0 0;position:relative}
+.lab{display:flex;gap:3px;color:var(--mu);font-size:11px}.lab span{flex:1;text-align:center;overflow:hidden}
+.tag{padding:2px 8px;border-radius:10px;font-size:12px;background:var(--bd)}.white{background:#bbf7d0;color:#14532d}.black{background:#fecaca;color:#7f1d1d}
+.plate{font-weight:600;font-size:16px}img.t{height:38px;border-radius:4px}.hide{display:none}.two{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+@media(max-width:900px){.two{grid-template-columns:1fr}}@media print{nav,.noprint{display:none}body{background:#fff;color:#000}}
+</style></head><body>
+<nav><b>🚗 ระบบ LPR</b><button data-t="live">ภาพสด</button><button data-t="ev">เหตุการณ์</button><button data-t="rp">รายงาน</button><button data-t="cm">กล้อง</button><button data-t="pl">รายการทะเบียน</button></nav>
+<main>
+<section id="live"><div class="two"><div class="grid" id="grid"></div><div class="card"><b>ล่าสุด</b><table id="latest"></table></div></div></section>
+
+<section id="ev" class="hide"><div class="card"><div class="row noprint">
+<input id="e_p" placeholder="ทะเบียน (ใช้ * หรือ _ แทนตัวอักษร)"><select id="e_c"></select>
+<select id="e_k"><option value="">ทุกรายการ</option><option value="white">Whitelist</option><option value="black">Blacklist</option><option value="unknown">ไม่อยู่ในรายการ</option></select>
+<input type="date" id="e_s"><input type="date" id="e_e"><button class="b p" onclick="evLoad(0)">ค้นหา</button><a class="b" id="e_x" href="#" style="text-decoration:none;padding:6px 10px;border:1px solid var(--bd);border-radius:6px;color:inherit">ส่งออก CSV</a></div>
+<table id="evt"></table><div class="row noprint" style="margin-top:10px"><button class="b" onclick="evLoad(-1)">◀ ก่อนหน้า</button><span id="e_pg"></span><button class="b" onclick="evLoad(1)">ถัดไป ▶</button></div></div></section>
+
+<section id="rp" class="hide"><div class="card"><div class="row noprint"><input type="date" id="r_s"><input type="date" id="r_e"><button class="b p" onclick="rpLoad()">สร้างรายงาน</button><button class="b" onclick="print()">พิมพ์ / บันทึก PDF</button></div>
+<h3 id="r_t" style="margin:0 0 10px"></h3><div class="kpi" id="r_k"></div></div>
+<div class="card"><b>จำนวนต่อวัน</b><div class="bar" id="r_d"></div><div class="lab" id="r_dl"></div></div>
+<div class="card"><b>จำนวนต่อชั่วโมง</b><div class="bar" id="r_h"></div><div class="lab" id="r_hl"></div></div>
+<div class="two"><div class="card"><b>แยกตามกล้อง</b><table id="r_c"></table></div><div class="card"><b>ทะเบียนที่พบบ่อย 10 อันดับ</b><table id="r_top"></table></div></div></section>
+
+<section id="cm" class="hide"><div class="card"><table id="cmt"></table></div>
+<div class="card"><b id="cf_t">เพิ่มกล้อง</b><div class="row" style="margin-top:8px"><select id="c_brand" onchange="brandChg()"><option value="vivotek">Vivotek</option><option value="dahua">Dahua</option><option value="other">อื่น ๆ (กำหนด path เอง)</option></select><input id="c_name" placeholder="ชื่อกล้อง"><input id="c_ip" placeholder="IP"><input id="c_user" placeholder="username" value="root"><input id="c_pw" type="password" placeholder="password (เว้นว่าง = คงเดิม)">
+<input id="c_path" value="/live1s1.sdp" placeholder="stream path" size="34"><span id="c_dh" class="hide"><input id="c_ch" type="number" min="1" value="1" style="width:70px" title="channel" onchange="brandChg()"> <select id="c_sub" onchange="brandChg()"><option value="0">สตรีมหลัก</option><option value="1">สตรีมรอง</option></select></span><select id="c_dir"><option value="both">ทั้งเข้า/ออก</option><option value="in">ขาเข้า</option><option value="out">ขาออก</option></select>
+<label><input type="checkbox" id="c_gate"> ควบคุมประตู (DO, เฉพาะ Vivotek)</label><label><input type="checkbox" id="c_en" checked> เปิดใช้งาน</label><button class="b p" onclick="cmSave()">บันทึก</button><button class="b" onclick="cmReset()">ล้างฟอร์ม</button></div></div></section>
+
+<section id="pl" class="hide"><div class="card"><div class="row"><input id="p_p" placeholder="ทะเบียน เช่น 1กข1234"><select id="p_k"><option value="white">Whitelist (อนุญาต)</option><option value="black">Blacklist (เฝ้าระวัง)</option></select><input id="p_o" placeholder="เจ้าของ"><input id="p_n" placeholder="หมายเหตุ"><button class="b p" onclick="plAdd()">เพิ่ม</button></div><table id="plt"></table></div></section>
+</main>
+<script>
+const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const J=async(u,o)=>{const r=await fetch(u,o);if(!r.ok){alert((await r.json().catch(()=>({}))).detail||"เกิดข้อผิดพลาด");throw 0}return r.json()};
+const send=(u,m,b)=>J(u,{method:m,headers:{"Content-Type":"application/json"},body:b?JSON.stringify(b):undefined});
+const kindTag=k=>k?`<span class="tag ${k}">${k=="white"?"Whitelist":"Blacklist"}</span>`:'<span class="tag">-</span>';
+const fmt=t=>new Date(t*1000).toLocaleString("th-TH");let cams=[],page=0,editId=null,tab="live";
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.t));
+function show(t){tab=t;document.querySelectorAll("section").forEach(s=>s.classList.toggle("hide",s.id!=t));document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t==t));
+ ({live:liveLoad,ev:()=>evLoad(0),rp:rpLoad,cm:cmLoad,pl:plLoad})[t]()}
+async function loadCams(){cams=await J("/api/cameras");$("e_c").innerHTML='<option value="">ทุกกล้อง</option>'+cams.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}
+const cname=id=>esc((cams.find(c=>c.id==id)||{}).name||"-");
+function feed(id){const im=$("im"+id);if(!im)return;const next=()=>setTimeout(()=>{if(!document.body.contains(im))return;if(tab=="live")im.src=`/api/cameras/${id}/snapshot?t=${Date.now()}`;else next()},tab=="live"?400:1500);im.onload=next;im.onerror=next;im.src=`/api/cameras/${id}/snapshot?t=${Date.now()}`}
+async function liveLoad(){await loadCams();const g=$("grid");const ids=cams.filter(c=>c.enabled).map(c=>c.id).join();
+ if(g.dataset.ids!=ids){g.dataset.ids=ids;g.innerHTML=cams.filter(c=>c.enabled).map(c=>`<div class="card cam"><h4><span><i class="dot" id="d${c.id}"></i>${esc(c.name)}</span><span style="color:var(--mu)" id="f${c.id}"></span></h4><img id="im${c.id}" alt="ยังไม่มีภาพ (รอเฟรมจากกล้อง…)"></div>`).join("")||"<div class='card'>ยังไม่มีกล้อง ไปที่แท็บ “กล้อง” เพื่อเพิ่ม</div>";cams.filter(c=>c.enabled).forEach(c=>feed(c.id))}
+ cams.forEach(c=>{const d=$("d"+c.id);if(d){d.className="dot "+c.state;$("f"+c.id).textContent=c.state=="online"?c.fps+" fps":c.state}});
+ const ev=await J("/api/events?limit=15");$("latest").innerHTML=ev.map(e=>`<tr><td><img class="t" src="/events/${e.id}/image?kind=plate"></td><td><span class="plate">${esc(e.plate)}</span><br><small>${esc(e.province||"")} · ${cname(e.camera_id)}</small></td><td>${kindTag(e.list_type)}<br><small>${new Date(e.ts*1000).toLocaleTimeString("th-TH")}</small></td></tr>`).join("")}
+async function evLoad(d){page=d==0?0:Math.max(0,page+d);const q=new URLSearchParams({plate:$("e_p").value,camera_id:$("e_c").value||0,kind:$("e_k").value,start:$("e_s").value,end:$("e_e").value});
+ $("e_x").href="/api/events/export.csv?"+q;q.set("limit",50);q.set("offset",page*50);const ev=await J("/api/events?"+q);
+ $("evt").innerHTML="<tr><th>ภาพ</th><th>เวลา</th><th>ทะเบียน</th><th>จังหวัด</th><th>กล้อง</th><th>มั่นใจ</th><th>รายการ</th></tr>"+ev.map(e=>`<tr><td><a href="/events/${e.id}/image" target="_blank"><img class="t" src="/events/${e.id}/image?kind=plate"></a></td><td>${fmt(e.ts)}</td><td class="plate">${esc(e.plate)}</td><td>${esc(e.province||"-")}</td><td>${cname(e.camera_id)}</td><td>${Math.round((e.conf||0)*100)}%</td><td>${kindTag(e.list_type)}</td></tr>`).join("");$("e_pg").textContent="หน้า "+(page+1)}
+const bars=(id,lid,rows,lab)=>{const m=Math.max(1,...rows.map(r=>r.n));$(id).innerHTML=rows.map(r=>`<i style="height:${r.n/m*100}%" title="${lab(r)}: ${r.n}"></i>`).join("");$(lid).innerHTML=rows.map(r=>`<span>${lab(r)}</span>`).join("")};
+async function rpLoad(){const t=new Date(),a=new Date(t-6*864e5),f=d=>d.toISOString().slice(0,10);if(!$("r_s").value){$("r_s").value=f(a);$("r_e").value=f(t)}
+ await loadCams();const r=await J(`/api/report?start=${$("r_s").value}&end=${$("r_e").value}`);const k=Object.fromEntries(r.by_kind.map(x=>[x.k,x.n]));
+ $("r_t").textContent=`รายงานการตรวจจับป้ายทะเบียน ${$("r_s").value} ถึง ${$("r_e").value}`;
+ $("r_k").innerHTML=[["ทั้งหมด",r.total.n],["รถไม่ซ้ำ",r.total.u],["Whitelist",k.white||0],["Blacklist",k.black||0],["ไม่อยู่ในรายการ",k.unknown||0]].map(x=>`<div class="card"><b>${x[1]}</b><span>${x[0]}</span></div>`).join("");
+ bars("r_d","r_dl",r.by_day,x=>x.k.slice(5));bars("r_h","r_hl",r.by_hour,x=>x.k);
+ $("r_c").innerHTML="<tr><th>กล้อง</th><th>ครั้ง</th><th>รถไม่ซ้ำ</th></tr>"+r.by_camera.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.n}</td><td>${x.u}</td></tr>`).join("");
+ $("r_top").innerHTML="<tr><th>ทะเบียน</th><th>ครั้ง</th></tr>"+r.top.map(x=>`<tr><td class="plate">${esc(x.k)}</td><td>${x.n}</td></tr>`).join("")}
+async function cmLoad(){await loadCams();$("cmt").innerHTML="<tr><th>ชื่อ</th><th>IP</th><th>สถานะ</th><th>โหมด</th><th>ประตู</th><th></th></tr>"+cams.map(c=>`<tr><td>${esc(c.name)}</td><td>${esc(c.ip)} <small style="color:var(--mu)">${esc(c.brand||"")}</small></td><td><i class="dot ${c.state}"></i>${c.enabled?c.state:"ปิดใช้งาน"} ${c.fps?c.fps+" fps":""}</td><td>${esc(c.direction)}</td><td>${c.gate_enabled?`<button class="b" onclick="send('/api/cameras/${c.id}/open-gate','POST').then(()=>alert('สั่งเปิดแล้ว'))">เปิดประตู</button>`:"-"}</td><td><button class="b" onclick="cmEdit(${c.id})">แก้ไข</button> <button class="b d" onclick="cmDel(${c.id})">ลบ</button></td></tr>`).join("")}
+const cv=(id,v)=>{const e=$(id);e.type=="checkbox"?e.checked=!!v:e.value=v};
+const DEF={vivotek:"/live1s1.sdp",dahua:"/cam/realmonitor?channel=1&subtype=0",other:""};
+function brandUI(){const b=$("c_brand").value;$("c_dh").classList.toggle("hide",b!="dahua");$("c_path").readOnly=b!="other";$("c_gate").disabled=b!="vivotek";if(b!="vivotek")$("c_gate").checked=false}
+function brandChg(){const b=$("c_brand").value;brandUI();if(b=="dahua")$("c_path").value=`/cam/realmonitor?channel=${+$("c_ch").value||1}&subtype=${$("c_sub").value}`;else if(b=="vivotek")$("c_path").value=DEF.vivotek;else if($("c_path").value.startsWith("/cam/real")||$("c_path").value.startsWith("/live"))$("c_path").value=""}
+function cmEdit(id){const c=cams.find(x=>x.id==id);editId=id;$("cf_t").textContent="แก้ไขกล้อง: "+c.name;cv("c_name",c.name);cv("c_ip",c.ip);cv("c_user",c.username);cv("c_pw","");cv("c_brand",c.brand||"vivotek");cv("c_path",c.stream_path);if(c.brand=="dahua"){const m=c.stream_path.match(/channel=(\d+).*subtype=(\d)/);if(m){cv("c_ch",m[1]);cv("c_sub",m[2])}}brandUI();cv("c_dir",c.direction);cv("c_gate",c.gate_enabled);cv("c_en",c.enabled);scrollTo(0,document.body.scrollHeight)}
+function cmReset(){editId=null;$("cf_t").textContent="เพิ่มกล้อง";["c_name","c_ip","c_pw"].forEach(i=>cv(i,""));cv("c_user","root");cv("c_brand","vivotek");brandChg();cv("c_gate",0);cv("c_en",1)}
+async function cmSave(){const b={name:$("c_name").value,ip:$("c_ip").value,username:$("c_user").value,password:$("c_pw").value,brand:$("c_brand").value,stream_path:$("c_path").value,direction:$("c_dir").value,gate_enabled:+$("c_gate").checked,enabled:+$("c_en").checked};
+ if(!b.stream_path.startsWith("/"))return alert("stream path ต้องขึ้นต้นด้วย /");if(!b.name||!b.ip||(!editId&&!b.password))return alert("กรอกชื่อ, IP และรหัสผ่านให้ครบ");if(/[^\x20-\x7e]/.test(b.username+b.password))return alert("username/password ต้องเป็นภาษาอังกฤษ (ตรวจคีย์บอร์ดไทย)");
+ await send(editId?"/api/cameras/"+editId:"/api/cameras",editId?"PUT":"POST",b);cmReset();cmLoad()}
+async function cmDel(id){if(confirm("ลบกล้องนี้? (ประวัติเหตุการณ์ยังอยู่)")){await send("/api/cameras/"+id,"DELETE");cmLoad()}}
+async function plLoad(){const p=await J("/api/plates");$("plt").innerHTML="<tr><th>ทะเบียน</th><th>ประเภท</th><th>เจ้าของ</th><th>หมายเหตุ</th><th></th></tr>"+p.map(x=>`<tr><td class="plate">${esc(x.plate)}</td><td>${kindTag(x.kind)}</td><td>${esc(x.owner)}</td><td>${esc(x.note)}</td><td><button class="b d" onclick="plDel(this.dataset.p)" data-p="${esc(x.plate)}">ลบ</button></td></tr>`).join("")}
+async function plAdd(){await send("/api/plates","POST",{plate:$("p_p").value,kind:$("p_k").value,owner:$("p_o").value,note:$("p_n").value});["p_p","p_o","p_n"].forEach(i=>$(i).value="");plLoad()}
+async function plDel(p){await send("/api/plates/"+encodeURIComponent(p),"DELETE");plLoad()}
+show("live");setInterval(()=>{if(tab=="live")liveLoad().catch(()=>{})},3000);
+</script></body></html>
