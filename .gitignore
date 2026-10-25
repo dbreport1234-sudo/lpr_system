@@ -1,0 +1,5 @@
+camera.yaml
+data/
+models/*.pt
+.venv/
+__pycache__/
